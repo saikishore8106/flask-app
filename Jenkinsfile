@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
     
@@ -17,7 +18,8 @@ pipeline {
             agent {
                 docker {
                     image 'python:3.9-slim'
-                    args '-v $PIP_CACHE_DIR:/root/.cache/pip --user 0'  # Run as root
+                    // Run as root to avoid permission issues
+                    args '-v $PIP_CACHE_DIR:/root/.cache/pip --user 0'
                     reuseNode true
                 }
             }
