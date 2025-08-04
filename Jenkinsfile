@@ -1,21 +1,15 @@
 pipeline {
-    agent any  // Changed from 'none' to avoid node label requirements
+    agent any
     
     environment {
         DOCKER_IMAGE = "flask-app:${env.BUILD_ID}"
+        PIP_CACHE_DIR = '/tmp/pip-cache'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    extensions: [],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/saikishore8106/flask-app.git'
-                    ]]
-                ])
+                checkout scm
             }
         }
 
@@ -23,13 +17,15 @@ pipeline {
             agent {
                 docker {
                     image 'python:3.9-slim'
-                    args '-v /tmp/pip-cache:/root/.cache/pip'
+                    args '-v $PIP_CACHE_DIR:/root/.cache/pip --user 0'  # Run as root
                     reuseNode true
                 }
             }
             steps {
-                sh 'pip install -r requirements.txt'
-                sh 'python -m pytest tests/'
+                sh '''
+                    pip install --user -r requirements.txt
+                    python -m pytest tests/
+                '''
             }
         }
 
