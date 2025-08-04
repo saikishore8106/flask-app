@@ -1,10 +1,11 @@
+
 pipeline {
     agent none
     
     stages {
         stage('Checkout') {
             steps {
-                node {
+                node('master') {
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: '*/main']],
@@ -19,8 +20,8 @@ pipeline {
 
         stage('Install & Test') {
             steps {
-                node {
-                    docker.image('python:3.9-slim').inside('-v /tmp/pip-cache:/root/.cache/pip') {
+                node('master') {
+                    withDockerContainer(image: 'python:3.9-slim', args: '-v /tmp/pip-cache:/root/.cache/pip') {
                         sh 'pip install -r requirements.txt'
                         sh 'python -m pytest tests/'
                     }
@@ -30,8 +31,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                node {
-                    docker.image('docker:20.10.17').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+                node('master') {
+                    withDockerContainer(image: 'docker:20.10.17', args: '-v /var/run/docker.sock:/var/run/docker.sock') {
                         script {
                             docker.build("flask-app:${env.BUILD_ID}")
                         }
@@ -45,8 +46,8 @@ pipeline {
                 branch 'main'
             }
             steps {
-                node {
-                    docker.image('docker:20.10.17').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+                node('master') {
+                    withDockerContainer(image: 'docker:20.10.17', args: '-v /var/run/docker.sock:/var/run/docker.sock') {
                         withCredentials([usernamePassword(
                             credentialsId: 'docker-hub-credentials',
                             usernameVariable: 'DOCKER_USER',
@@ -65,17 +66,17 @@ pipeline {
 
     post {
         always {
-            node {
+            node('master') {
                 cleanWs()
             }
         }
         success {
-            node {
+            node('master') {
                 slackSend(color: 'good', message: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'")
             }
         }
         failure {
-            node {
+            node('master') {
                 slackSend(color: 'danger', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'")
             }
         }
