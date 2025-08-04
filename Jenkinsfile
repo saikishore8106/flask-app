@@ -1,10 +1,13 @@
-
 pipeline {
     agent any
     
     environment {
         DOCKER_IMAGE = "flask-app:${env.BUILD_ID}"
         PIP_CACHE_DIR = '/tmp/pip-cache'
+        // Use compatible versions
+        FLASK_VERSION = '2.2.5'
+        WERKZEUG_VERSION = '2.2.3'
+        PYTEST_VERSION = '7.4.0'
     }
     
     stages {
@@ -18,16 +21,15 @@ pipeline {
             agent {
                 docker {
                     image 'python:3.9-slim'
-                    // Run as root to avoid permission issues
                     args '-v $PIP_CACHE_DIR:/root/.cache/pip --user 0'
                     reuseNode true
                 }
             }
             steps {
-                sh '''
-                    pip install --user -r requirements.txt
+                sh """
+                    pip install --user flask==${FLASK_VERSION} werkzeug==${WERKZEUG_VERSION} pytest==${PYTEST_VERSION}
                     python -m pytest tests/
-                '''
+                """
             }
         }
 
