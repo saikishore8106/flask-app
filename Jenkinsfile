@@ -4,7 +4,6 @@ pipeline {
     environment {
         DOCKER_IMAGE = "flask-app:${env.BUILD_ID}"
         PIP_CACHE_DIR = '/tmp/pip-cache'
-        // Use compatible versions
         FLASK_VERSION = '2.2.5'
         WERKZEUG_VERSION = '2.2.3'
         PYTEST_VERSION = '7.4.0'
@@ -34,15 +33,11 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            agent {
-                docker {
-                    image 'docker:20.10.17'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                    reuseNode true
-                }
-            }
+            agent any  // Run directly on the host with Docker access
             steps {
                 script {
+                    // Ensure Jenkins has Docker permissions
+                    sh 'sudo chmod 666 /var/run/docker.sock || true'
                     docker.build("${DOCKER_IMAGE}")
                 }
             }
@@ -52,13 +47,7 @@ pipeline {
             when {
                 branch 'main'
             }
-            agent {
-                docker {
-                    image 'docker:20.10.17'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                    reuseNode true
-                }
-            }
+            agent any  // Run directly on the host with Docker access
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-hub-credentials',
